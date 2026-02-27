@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "id": {
+        "channelId": "UC_TEST_CHANNEL"
+      },
+      "snippet": {
+        "channelId": "UC_TEST_CHANNEL",
+        "channelTitle": "Fixture Channel"
+      }
+    }
+  ]
+}

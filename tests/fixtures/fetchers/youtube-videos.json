@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "id": "video_new_1",
+      "snippet": {
+        "channelTitle": "Fixture Channel",
+        "publishedAt": "2026-02-24T11:00:00.000Z",
+        "title": "New fixture video",
+        "description": "Description for the new fixture video.",
+        "thumbnails": {
+          "high": {
+            "url": "https://img.youtube.com/new.png"
+          }
+        }
+      },
+      "contentDetails": {
+        "duration": "PT10M30S"
+      },
+      "statistics": {
+        "viewCount": "1200"
+      }
+    },
+    {
+      "id": "video_old_1",
+      "snippet": {
+        "channelTitle": "Fixture Channel",
+        "publishedAt": "2025-11-24T11:00:00.000Z",
+        "title": "Old fixture video",
+        "description": "Description for the old fixture video.",
+        "thumbnails": {
+          "high": {
+            "url": "https://img.youtube.com/old.png"
+          }
+        }
+      },
+      "contentDetails": {
+        "duration": "PT2M00S"
+      },
+      "statistics": {
+        "viewCount": "42"
+      }
+    }
+  ]
+}

@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  emailVerified       DateTime?
+  passwordHash        String
+  name                String?
+  timezone            String    @default("UTC")
+  theme               String    @default("system")
+  role                String    @default("user")
+  plan                String    @default("free")
+  stripeCustomerId    String?   @unique
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  sessions        Session[]
+  accounts        Account[]
+  userSources     UserSource[]
+  userPostStates  UserPostState[]
+  scheduledEvents ScheduledEvent[]
+  blockedPosts    BlockedPost[]
+  manualRefreshes ManualRefreshEvent[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String   @unique
+  expires      DateTime
+
+  @@index([userId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+}
+
+model InviteCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  createdBy String
+  usedBy    String?
+  usedAt    DateTime?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Source {
+  id              String   @id @default(cuid())
+  type            String
+  url             String
+  normalizedUrl   String   @unique
+  name            String
+  config          String?
+  enabled         Boolean  @default(true)
+  lastFetchedAt   DateTime?
+  lastFetchStatus String   @default("never")
+  createdAt       DateTime @default(now())
+
+  posts       Post[]
+  userSources UserSource[]
+  cacheEntry  CacheEntry?
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  sourceId    String
+  source      Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  externalId  String?
+  title       String?
+  content     String
+  author      String?
+  url         String?
+  imageUrl    String?
+  mediaType   String?
+  category    String?
+  metadata    String?
+  publishedAt DateTime
+  fetchedAt   DateTime @default(now())
+
+  userPostStates  UserPostState[]
+  scheduledEvents ScheduledEvent[]
+
+  @@unique([sourceId, externalId])
+  @@index([publishedAt])
+  @@index([category])
+  @@index([sourceId])
+}
+
+model UserSource {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceId   String
+  source     Source    @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  customName String?
+  mutedUntil DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([userId, sourceId])
+  @@index([userId])
+  @@index([sourceId])
+}
+
+model UserPostState {
+  id      String    @id @default(cuid())
+  userId  String
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId  String
+  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  isRead  Boolean   @default(false)
+  isSaved Boolean   @default(false)
+  readAt  DateTime?
+  savedAt DateTime?
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@index([userId, isRead])
+  @@index([userId, isSaved])
+}
+
+model ScheduledEvent {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId        String
+  post          Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  title         String
+  scheduledAt   DateTime
+  googleEventId String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, scheduledAt])
+}
+
+model BlockedPost {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceId   String
+  externalId String
+  deletedAt  DateTime @default(now())
+
+  @@unique([userId, sourceId, externalId])
+  @@index([userId])
+}
+
+model CacheEntry {
+  id        String   @id @default(cuid())
+  sourceId  String   @unique
+  source    Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  fetchedAt DateTime
+  expiresAt DateTime
+}
+
+model WorkerLock {
+  id       String   @id
+  lockedAt DateTime
+}
+
+model ManualRefreshEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}

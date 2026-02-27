@@ -12,6 +12,20 @@
 
 # testing
 /coverage
+/prisma/test-data.db
+/prisma/test-data.db-shm
+/prisma/test-data.db-wal
+/prisma/prisma/test-data.db
+/prisma/prisma/test-data.db-shm
+/prisma/prisma/test-data.db-wal
+
+# database
+/prisma/data.db
+/prisma/data.db-shm
+/prisma/data.db-wal
+/prisma/prisma/data.db
+/prisma/prisma/data.db-shm
+/prisma/prisma/data.db-wal
 
 # next.js
 /.next/
@@ -23,6 +37,7 @@
 # misc
 .DS_Store
 *.pem
+.claude/settings.local.json
 
 # debug
 npm-debug.log*
