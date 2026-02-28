@@ -152,6 +152,7 @@ export async function POST(request: Request) {
 
     let fetchedCount = 0;
     let oldestFetchedAt: Date | null = null;
+    let initialFetchFailed = false;
 
     if (createdSource) {
       const fetcher = fetchers[type];
@@ -190,6 +191,7 @@ export async function POST(request: Request) {
           });
         } catch (fetchError) {
           console.error("[sources] Initial fetch failed for", source.normalizedUrl, fetchError);
+          initialFetchFailed = true;
           await db.source.update({
             where: { id: source.id },
             data: { lastFetchStatus: "failed" },
@@ -204,6 +206,7 @@ export async function POST(request: Request) {
         sourceId: source.id,
         fetchedCount,
         oldestFetchedAt,
+        initialFetchFailed,
       },
     });
   } catch (error) {
