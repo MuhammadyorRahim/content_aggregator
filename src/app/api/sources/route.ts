@@ -156,37 +156,45 @@ export async function POST(request: Request) {
     if (createdSource) {
       const fetcher = fetchers[type];
       if (fetcher) {
-        const fetched = await fetcher.fetch(source, CONTENT_START_DATE);
-        const processed = processFetchedPosts(fetched);
-        fetchedCount = await dedupAndInsertPosts(source.id, processed);
+        try {
+          const fetched = await fetcher.fetch(source, CONTENT_START_DATE);
+          const processed = processFetchedPosts(fetched);
+          fetchedCount = await dedupAndInsertPosts(source.id, processed);
 
-        oldestFetchedAt = processed.length
-          ? new Date(
-              Math.min(...processed.map((item) => item.publishedAt.getTime()))
-            )
-          : null;
+          oldestFetchedAt = processed.length
+            ? new Date(
+                Math.min(...processed.map((item) => item.publishedAt.getTime()))
+              )
+            : null;
 
-        const now = new Date();
-        await db.source.update({
-          where: { id: source.id },
-          data: {
-            lastFetchedAt: now,
-            lastFetchStatus: "success",
-          },
-        });
+          const now = new Date();
+          await db.source.update({
+            where: { id: source.id },
+            data: {
+              lastFetchedAt: now,
+              lastFetchStatus: "success",
+            },
+          });
 
-        await db.cacheEntry.upsert({
-          where: { sourceId: source.id },
-          create: {
-            sourceId: source.id,
-            fetchedAt: now,
-            expiresAt: new Date(now.getTime() + 15 * 60_000),
-          },
-          update: {
-            fetchedAt: now,
-            expiresAt: new Date(now.getTime() + 15 * 60_000),
-          },
-        });
+          await db.cacheEntry.upsert({
+            where: { sourceId: source.id },
+            create: {
+              sourceId: source.id,
+              fetchedAt: now,
+              expiresAt: new Date(now.getTime() + 15 * 60_000),
+            },
+            update: {
+              fetchedAt: now,
+              expiresAt: new Date(now.getTime() + 15 * 60_000),
+            },
+          });
+        } catch (fetchError) {
+          console.error("[sources] Initial fetch failed for", source.normalizedUrl, fetchError);
+          await db.source.update({
+            where: { id: source.id },
+            data: { lastFetchStatus: "failed" },
+          });
+        }
       }
     }
 
