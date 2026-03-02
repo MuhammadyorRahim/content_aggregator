@@ -16,6 +16,7 @@ export async function requireAuth(): Promise<AuthSession> {
   const session = (await auth()) as { user?: AuthUser } | null;
 
   if (!session?.user) {
+    console.error("[auth] requireAuth failed — session:", JSON.stringify(session));
     throw new Error("UNAUTHORIZED");
   }
 

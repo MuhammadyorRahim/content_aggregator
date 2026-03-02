@@ -144,13 +144,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.plan = (user as { plan?: string }).plan ?? "free";
       }
       if (token.id) {
-        const dbUser = await db.user.findUnique({
-          where: { id: token.id as string },
-          select: { role: true, plan: true },
-        });
-        if (dbUser) {
-          token.role = dbUser.role;
-          token.plan = dbUser.plan;
+        try {
+          const dbUser = await db.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true, plan: true },
+          });
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.plan = dbUser.plan;
+          }
+        } catch (error) {
+          console.error("[auth] jwt callback db lookup failed:", error);
         }
       }
       return token;
