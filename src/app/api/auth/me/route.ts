@@ -1,15 +1,12 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 
+import { handleApiError } from "@/lib/api-error";
 import { verificationEmailTemplate } from "@/email-templates/verification";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { requireAuth } from "@/lib/auth-middleware";
 import { updateProfileSchema } from "@/lib/validations";
-
-function unauthorizedResponse() {
-  return NextResponse.json({ success: false, data: null, error: "Unauthorized" }, { status: 401 });
-}
 
 export async function GET() {
   try {
@@ -43,8 +40,8 @@ export async function GET() {
           }
         : null,
     });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, "Failed to load profile");
   }
 }
 
@@ -65,7 +62,7 @@ export async function PATCH(request: Request) {
 
     const existingUser = await db.user.findUnique({ where: { id: userId } });
     if (!existingUser) {
-      return unauthorizedResponse();
+      return NextResponse.json({ success: false, data: null, error: "Unauthorized" }, { status: 401 });
     }
 
     const updates = parsed.data;
@@ -112,8 +109,8 @@ export async function PATCH(request: Request) {
     }
 
     return NextResponse.json({ success: true, data: { message: "Profile updated" } });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, "Failed to update profile");
   }
 }
 
@@ -125,7 +122,7 @@ export async function DELETE() {
     await db.user.delete({ where: { id: userId } });
 
     return NextResponse.json({ success: true, data: { message: "Account deleted" } });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, "Failed to delete account");
   }
 }

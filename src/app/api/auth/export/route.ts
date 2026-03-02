@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { handleApiError } from "@/lib/api-error";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth-middleware";
 
@@ -25,7 +26,7 @@ export async function GET() {
     const response = NextResponse.json({ success: true, data: user });
     response.headers.set("Content-Disposition", 'attachment; filename="personal-data.json"');
     return response;
-  } catch {
-    return NextResponse.json({ success: false, data: null, error: "Unauthorized" }, { status: 401 });
+  } catch (error) {
+    return handleApiError(error, "Failed to export data");
   }
 }

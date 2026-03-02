@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import { handleApiError } from "@/lib/api-error";
 import { BLOCKED_POST_INTERNAL_PREFIX, FEED_PAGE_SIZE } from "@/lib/constants";
 import { requireAuth } from "@/lib/auth-middleware";
 import { db } from "@/lib/db";
@@ -153,7 +154,7 @@ export async function GET(request: Request) {
         hasMore,
       },
     });
-  } catch {
-    return NextResponse.json({ success: false, data: null, error: "Unauthorized" }, { status: 401 });
+  } catch (error) {
+    return handleApiError(error, "Failed to load posts");
   }
 }

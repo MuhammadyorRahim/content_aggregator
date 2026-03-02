@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { handleApiError } from "@/lib/api-error";
 import { BLOCKED_POST_INTERNAL_PREFIX } from "@/lib/constants";
 import { requireAuth } from "@/lib/auth-middleware";
 import { db } from "@/lib/db";
 
 type CategoryRow = {
   category: string;
-  count: number;
+  count: bigint | number;
 };
 
 export async function GET() {
@@ -33,12 +34,10 @@ export async function GET() {
       ORDER BY count DESC, category ASC
     `;
 
-    return NextResponse.json({ success: true, data: rows });
-  } catch (error) {
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      return NextResponse.json({ success: false, data: null, error: "Unauthorized" }, { status: 401 });
-    }
+    const data = rows.map((row) => ({ category: row.category, count: Number(row.count) }));
 
-    return NextResponse.json({ success: false, data: null, error: "Failed to load categories" }, { status: 500 });
+    return NextResponse.json({ success: true, data });
+  } catch (error) {
+    return handleApiError(error, "Failed to load categories");
   }
 }

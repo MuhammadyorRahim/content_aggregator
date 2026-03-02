@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { handleApiError } from "@/lib/api-error";
 import { processFetchedPosts } from "@/lib/content-processor";
 import { BLOCKED_POST_INTERNAL_PREFIX, CONTENT_START_DATE } from "@/lib/constants";
 import { db } from "@/lib/db";
@@ -58,7 +59,7 @@ export async function GET() {
 
     const unreadCounts = await Promise.all(
       subscriptions.map(async (item) => {
-        const rows = await db.$queryRaw<Array<{ count: number }>>`
+        const rows = await db.$queryRaw<Array<{ count: bigint | number }>>`
           SELECT COUNT(1) as count
           FROM Post p
           LEFT JOIN UserPostState ups
@@ -72,7 +73,7 @@ export async function GET() {
             AND COALESCE(ups.isRead, 0) = 0
         `;
 
-        return [item.sourceId, rows[0]?.count ?? 0] as const;
+        return [item.sourceId, Number(rows[0]?.count ?? 0)] as const;
       })
     );
 
@@ -85,8 +86,8 @@ export async function GET() {
         unreadCount: unreadMap.get(item.sourceId) ?? 0,
       })),
     });
-  } catch {
-    return NextResponse.json({ success: false, data: null, error: "Unauthorized" }, { status: 401 });
+  } catch (error) {
+    return handleApiError(error, "Failed to load sources");
   }
 }
 
@@ -210,17 +211,6 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      return NextResponse.json({ success: false, data: null, error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (error instanceof Error && error.message === "SOURCE_LIMIT_REACHED") {
-      return NextResponse.json(
-        { success: false, data: null, error: "Free plan supports up to 5 sources. Upgrade to Pro for unlimited." },
-        { status: 403 }
-      );
-    }
-
-    return NextResponse.json({ success: false, data: null, error: "Failed to subscribe source" }, { status: 500 });
+    return handleApiError(error, "Failed to subscribe source");
   }
 }

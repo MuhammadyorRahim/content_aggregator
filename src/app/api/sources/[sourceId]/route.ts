@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { handleApiError } from "@/lib/api-error";
 import { requireAuth } from "@/lib/auth-middleware";
 import { db } from "@/lib/db";
 import { updateSubscriptionSchema } from "@/lib/validations";
@@ -51,8 +52,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch {
-    return NextResponse.json({ success: false, data: null, error: "Unauthorized" }, { status: 401 });
+  } catch (error) {
+    return handleApiError(error, "Failed to update subscription");
   }
 }
 
@@ -85,7 +86,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     });
 
     return NextResponse.json({ success: true, data: { message: "Unsubscribed successfully" } });
-  } catch {
-    return NextResponse.json({ success: false, data: null, error: "Unauthorized" }, { status: 401 });
+  } catch (error) {
+    return handleApiError(error, "Failed to unsubscribe");
   }
 }

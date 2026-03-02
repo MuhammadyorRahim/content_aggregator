@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
 
+import { handleApiError } from "@/lib/api-error";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth-middleware";
 import { changePasswordSchema } from "@/lib/validations";
@@ -47,7 +48,7 @@ export async function PATCH(request: Request) {
     await db.session.deleteMany({ where: { userId } });
 
     return NextResponse.json({ success: true, data: { message: "Password changed successfully" } });
-  } catch {
-    return NextResponse.json({ success: false, data: null, error: "Unauthorized" }, { status: 401 });
+  } catch (error) {
+    return handleApiError(error, "Failed to change password");
   }
 }
