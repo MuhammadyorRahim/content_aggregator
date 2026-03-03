@@ -1,137 +1,135 @@
+import Parser from "rss-parser";
+
 import { ensureProtocol, extractYoutubeHandle } from "@/lib/url-normalizer";
 
 import { FetchError, type FetchResult, type FetchedPost, type Fetcher } from "./types";
 
-type YouTubeSearchResponse = {
-  items?: Array<{
-    id?: { videoId?: string; channelId?: string };
-    snippet?: {
-      channelId?: string;
-      channelTitle?: string;
-      publishedAt?: string;
-      title?: string;
-      description?: string;
-      thumbnails?: {
-        high?: { url?: string };
-      };
-    };
-  }>;
-};
+const parser = new Parser<Record<string, unknown>, Record<string, unknown>>({
+  timeout: 20_000,
+  headers: { "User-Agent": "ContentAggregator/1.0" },
+});
 
-type YouTubeVideosResponse = {
-  items?: Array<{
-    id?: string;
-    snippet?: {
-      channelTitle?: string;
-      publishedAt?: string;
-      title?: string;
-      description?: string;
-      thumbnails?: {
-        high?: { url?: string };
-      };
-    };
-    contentDetails?: {
-      duration?: string;
-    };
-    statistics?: {
-      viewCount?: string;
-    };
-  }>;
-};
-
-async function getChannelId(apiKey: string, sourceIdentifier: string) {
-  if (sourceIdentifier.startsWith("UC")) {
-    return sourceIdentifier;
+/**
+ * Resolve a YouTube identifier (@handle or UC... channel ID) to a UC... channel ID.
+ * Scrapes the YouTube page to extract the canonical channel ID.
+ */
+async function resolveChannelId(identifier: string): Promise<string> {
+  // Already a channel ID (starts with UC, 24 chars)
+  if (identifier.startsWith("UC") && identifier.length === 24) {
+    return identifier;
   }
 
-  const query = encodeURIComponent(sourceIdentifier);
-  const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=1&q=${query}&key=${apiKey}`;
-  const response = await fetch(searchUrl);
-  if (!response.ok) return null;
+  const handle = identifier.replace(/^@/, "");
+  const pageUrl = `https://www.youtube.com/@${handle}`;
 
-  const data = (await response.json()) as YouTubeSearchResponse;
-  return data.items?.[0]?.id?.channelId ?? data.items?.[0]?.snippet?.channelId ?? null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+
+  let res;
+  try {
+    res = await fetch(pageUrl, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html",
+      },
+    });
+  } catch (error) {
+    clearTimeout(timer);
+    throw new FetchError(
+      `Failed to resolve YouTube handle @${handle}: ${error instanceof Error ? error.message : String(error)}`,
+      "network"
+    );
+  }
+  clearTimeout(timer);
+
+  if (!res.ok) {
+    throw new FetchError(
+      `YouTube returned HTTP ${res.status} for @${handle} — channel may not exist`,
+      "network"
+    );
+  }
+
+  const html = await res.text();
+
+  const patterns = [
+    /"channelId":"(UC[A-Za-z0-9_-]{22})"/,
+    /"externalId":"(UC[A-Za-z0-9_-]{22})"/,
+    /channel_id=(UC[A-Za-z0-9_-]{22})/,
+    /\/channel\/(UC[A-Za-z0-9_-]{22})/,
+    /<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[A-Za-z0-9_-]{22})">/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  throw new FetchError(
+    `Could not find channel ID for @${handle}. Try using the channel ID directly (starts with UC, 24 chars).`,
+    "parse"
+  );
 }
 
 export const youtubeFetcher: Fetcher = {
   async fetch(source, since): Promise<FetchResult> {
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    if (!apiKey) {
-      throw new FetchError(
-        "YOUTUBE_API_KEY environment variable is not set. YouTube sources cannot be fetched.",
-        "config"
-      );
-    }
-
     const normalizedId = source.normalizedUrl.startsWith("youtube:")
       ? source.normalizedUrl.slice("youtube:".length)
       : extractYoutubeHandle(ensureProtocol(source.url));
 
-    const channelId = await getChannelId(apiKey, normalizedId);
-    if (!channelId) {
+    const channelId = await resolveChannelId(normalizedId);
+    const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+
+    let feed;
+    try {
+      feed = await parser.parseURL(feedUrl);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       throw new FetchError(
-        `Could not resolve YouTube channel for "${normalizedId}". Check the URL or handle.`,
+        `Failed to fetch YouTube RSS feed: ${msg} (URL: ${feedUrl})`,
         "network"
       );
     }
-
-    const publishedAfter = encodeURIComponent(since.toISOString());
-    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=25&order=date&type=video&publishedAfter=${publishedAfter}&key=${apiKey}`;
-    const searchResponse = await fetch(searchUrl);
-    if (!searchResponse.ok) {
-      throw new FetchError(
-        `YouTube API search failed (HTTP ${searchResponse.status}). Check API key quota.`,
-        "network"
-      );
-    }
-
-    const searchData = (await searchResponse.json()) as YouTubeSearchResponse;
-    const videoIds = (searchData.items ?? [])
-      .map((item) => item.id?.videoId)
-      .filter((value): value is string => Boolean(value));
-
-    if (!videoIds.length) {
-      return { posts: [], warning: `No new videos found since ${since.toISOString().split("T")[0]}` };
-    }
-
-    const videosUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoIds.join(",")}&key=${apiKey}`;
-    const videosResponse = await fetch(videosUrl);
-    if (!videosResponse.ok) {
-      throw new FetchError(
-        `YouTube API videos request failed (HTTP ${videosResponse.status}).`,
-        "network"
-      );
-    }
-
-    const videosData = (await videosResponse.json()) as YouTubeVideosResponse;
 
     const posts: FetchedPost[] = [];
+    const channelTitle = (feed.title as string | undefined) ?? source.name;
 
-    for (const video of videosData.items ?? []) {
-        const videoId = video.id;
-        const publishedAtRaw = video.snippet?.publishedAt;
+    for (const item of feed.items ?? []) {
+      const publishedRaw = (item.isoDate as string | undefined) ?? (item.pubDate as string | undefined);
+      if (!publishedRaw) continue;
 
-        if (!videoId || !publishedAtRaw) continue;
+      const publishedAt = new Date(publishedRaw);
+      if (Number.isNaN(publishedAt.getTime()) || publishedAt < since) continue;
 
-        const publishedAt = new Date(publishedAtRaw);
-        if (Number.isNaN(publishedAt.getTime()) || publishedAt < since) continue;
+      // YouTube Atom feed uses yt:videoId format in the id field
+      const rawId = (item.id as string | undefined) ?? "";
+      const videoId = rawId.replace("yt:video:", "") || (item.link as string | undefined)?.match(/v=([^&]+)/)?.[1] || "";
 
-        posts.push({
-          externalId: videoId,
-          title: video.snippet?.title,
-          content: video.snippet?.description ?? "",
-          author: video.snippet?.channelTitle ?? source.name,
-          url: `https://www.youtube.com/watch?v=${videoId}`,
-          imageUrl: video.snippet?.thumbnails?.high?.url,
-          mediaType: "video" as const,
-          metadata: {
-            duration: video.contentDetails?.duration,
-            viewCount: video.statistics?.viewCount,
-            thumbnailUrl: video.snippet?.thumbnails?.high?.url,
-            embedUrl: `https://www.youtube.com/embed/${videoId}`,
-          },
-          publishedAt: new Date(publishedAt.toISOString()),
-        });
+      if (!videoId) continue;
+
+      const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+      posts.push({
+        externalId: videoId,
+        title: (item.title as string | undefined) ?? undefined,
+        content: (item.content as string | undefined) ?? (item.contentSnippet as string | undefined) ?? "",
+        author: channelTitle,
+        url: (item.link as string | undefined) ?? `https://www.youtube.com/watch?v=${videoId}`,
+        imageUrl: thumbnail,
+        mediaType: "video" as const,
+        metadata: {
+          thumbnailUrl: thumbnail,
+          embedUrl: `https://www.youtube.com/embed/${videoId}`,
+        },
+        publishedAt: new Date(publishedAt.toISOString()),
+      });
+    }
+
+    if (!posts.length && !feed.items?.length) {
+      return { posts: [], warning: "YouTube feed returned no items." };
     }
 
     return { posts };
