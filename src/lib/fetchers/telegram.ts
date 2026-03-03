@@ -2,7 +2,7 @@ import { load } from "cheerio";
 
 import { ensureProtocol } from "@/lib/url-normalizer";
 
-import type { FetchedPost, Fetcher } from "./types";
+import { FetchError, type FetchResult, type FetchedPost, type Fetcher } from "./types";
 
 function normalizeTelegramPublicUrl(input: string) {
   const url = ensureProtocol(input).replace(/\/$/, "");
@@ -15,11 +15,22 @@ function normalizeTelegramPublicUrl(input: string) {
 }
 
 export const telegramFetcher: Fetcher = {
-  async fetch(source, since) {
+  async fetch(source, since): Promise<FetchResult> {
     const url = normalizeTelegramPublicUrl(source.url);
-    const response = await fetch(url);
+
+    let response;
+    try {
+      response = await fetch(url);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new FetchError(`Network error fetching Telegram channel at ${url}: ${msg}`, "network");
+    }
+
     if (!response.ok) {
-      return [];
+      throw new FetchError(
+        `Telegram returned HTTP ${response.status} for ${url}. The channel may be private or not exist.`,
+        "network"
+      );
     }
 
     const html = await response.text();
@@ -61,6 +72,10 @@ export const telegramFetcher: Fetcher = {
       });
     });
 
-    return posts;
+    if (!posts.length && !$(".tgme_widget_message_wrap").length) {
+      return { posts: [], warning: "No messages found. The channel may be private or empty." };
+    }
+
+    return { posts };
   },
 };

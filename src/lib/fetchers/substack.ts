@@ -2,7 +2,7 @@ import Parser from "rss-parser";
 
 import { ensureProtocol } from "@/lib/url-normalizer";
 
-import type { FetchedPost, Fetcher } from "./types";
+import { FetchError, type FetchResult, type FetchedPost, type Fetcher } from "./types";
 
 const parser = new Parser<Record<string, unknown>, Record<string, unknown>>();
 
@@ -12,10 +12,20 @@ function estimateReadTimeMinutes(content: string) {
 }
 
 export const substackFetcher: Fetcher = {
-  async fetch(source, since) {
+  async fetch(source, since): Promise<FetchResult> {
     const baseUrl = ensureProtocol(source.url);
     const feedUrl = baseUrl.endsWith("/feed") ? baseUrl : `${baseUrl.replace(/\/$/, "")}/feed`;
-    const feed = await parser.parseURL(feedUrl);
+
+    let feed;
+    try {
+      feed = await parser.parseURL(feedUrl);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new FetchError(
+        `Failed to parse Substack RSS feed at ${feedUrl}. Error: ${msg}`,
+        "network"
+      );
+    }
 
     const posts: FetchedPost[] = [];
 
@@ -50,6 +60,10 @@ export const substackFetcher: Fetcher = {
         });
     }
 
-    return posts;
+    if (!posts.length && !feed.items?.length) {
+      return { posts: [], warning: "Substack feed returned no items. The newsletter may have no public posts." };
+    }
+
+    return { posts };
   },
 };

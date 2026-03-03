@@ -43,8 +43,8 @@ export async function POST(_request: Request, context: RouteContext) {
       return NextResponse.json({ success: false, data: null, error: "Fetcher not available for source type" }, { status: 400 });
     }
 
-    const fetchedPosts = await fetcher.fetch(source, source.lastFetchedAt ?? CONTENT_START_DATE);
-    const processedPosts = processFetchedPosts(fetchedPosts);
+    const fetchResult = await fetcher.fetch(source, source.lastFetchedAt ?? CONTENT_START_DATE);
+    const processedPosts = processFetchedPosts(fetchResult.posts);
 
     const externalIds = processedPosts.map((post) => post.externalId);
     const existingPosts = await db.post.findMany({
@@ -113,7 +113,8 @@ export async function POST(_request: Request, context: RouteContext) {
       success: true,
       data: {
         sourceId: source.id,
-        fetchedCount: fetchedPosts.length,
+        fetchedCount: fetchResult.posts.length,
+        warning: fetchResult.warning,
         insertedCount,
       },
     });

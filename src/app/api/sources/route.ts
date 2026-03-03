@@ -5,6 +5,7 @@ import { processFetchedPosts } from "@/lib/content-processor";
 import { BLOCKED_POST_INTERNAL_PREFIX, CONTENT_START_DATE } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { fetchers } from "@/lib/fetchers";
+import { FetchError } from "@/lib/fetchers/types";
 import { requireAuth } from "@/lib/auth-middleware";
 import { requireSourceCapacity } from "@/lib/plan-limits";
 import { normalizeSourceUrl } from "@/lib/url-normalizer";
@@ -154,13 +155,16 @@ export async function POST(request: Request) {
     let fetchedCount = 0;
     let oldestFetchedAt: Date | null = null;
     let initialFetchFailed = false;
+    let fetchWarning: string | undefined;
+    let fetchErrorMessage: string | undefined;
 
     if (createdSource) {
       const fetcher = fetchers[type];
       if (fetcher) {
         try {
-          const fetched = await fetcher.fetch(source, CONTENT_START_DATE);
-          const processed = processFetchedPosts(fetched);
+          const result = await fetcher.fetch(source, CONTENT_START_DATE);
+          fetchWarning = result.warning;
+          const processed = processFetchedPosts(result.posts);
           fetchedCount = await dedupAndInsertPosts(source.id, processed);
 
           oldestFetchedAt = processed.length
@@ -193,6 +197,13 @@ export async function POST(request: Request) {
         } catch (fetchError) {
           console.error("[sources] Initial fetch failed for", source.normalizedUrl, fetchError);
           initialFetchFailed = true;
+
+          if (fetchError instanceof FetchError) {
+            fetchErrorMessage = fetchError.message;
+          } else {
+            fetchErrorMessage = "Failed to fetch posts from this source.";
+          }
+
           await db.source.update({
             where: { id: source.id },
             data: { lastFetchStatus: "failed" },
@@ -208,6 +219,8 @@ export async function POST(request: Request) {
         fetchedCount,
         oldestFetchedAt,
         initialFetchFailed,
+        fetchWarning,
+        fetchErrorMessage,
       },
     });
   } catch (error) {

@@ -3,7 +3,7 @@ import cron from "node-cron";
 import { CACHE_DURATION_FREE_MINUTES, CACHE_DURATION_PRO_MINUTES, CONTENT_START_DATE } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { fetchers } from "@/lib/fetchers";
-import type { FetchedPost } from "@/lib/fetchers/types";
+import type { FetchedPost, FetchResult } from "@/lib/fetchers/types";
 import { processFetchedPosts } from "@/lib/content-processor";
 
 const WORKER_LOCK_ID = "fetch-worker";
@@ -99,7 +99,7 @@ async function withTimeout<T>(promiseFactory: () => Promise<T>, timeoutMs: numbe
   });
 }
 
-async function fetchWithRetry(source: SourceWithRelations) {
+async function fetchWithRetry(source: SourceWithRelations): Promise<FetchResult> {
   const fetcher = fetchers[source.type];
 
   if (!fetcher) {
@@ -250,8 +250,11 @@ export async function runFetchCycle(): Promise<FetchCycleResult> {
 
     const results = await Promise.allSettled(
       staleSources.map(async (source) => {
-        const fetchedPosts = await fetchWithRetry(source);
-        const insertedCount = await persistFetchedPosts(source, fetchedPosts);
+        const result = await fetchWithRetry(source);
+        if (result.warning) {
+          console.warn(`[worker] ${source.type}:${source.normalizedUrl} — ${result.warning}`);
+        }
+        const insertedCount = await persistFetchedPosts(source, result.posts);
         const cacheDuration = getCacheDurationMinutes(source);
 
         await markSourceSuccess(source, cacheDuration);
@@ -299,6 +302,15 @@ export async function runFetchCycle(): Promise<FetchCycleResult> {
 
 export function startWorker() {
   console.log("[worker] Starting cron schedule: */15 * * * *");
+
+  // Run an initial fetch immediately on startup
+  runFetchCycle()
+    .then((result) => {
+      console.log("[worker] Initial fetch completed:", JSON.stringify(result));
+    })
+    .catch((error) => {
+      console.error("[worker] Initial fetch failed:", error);
+    });
 
   cron.schedule("*/15 * * * *", async () => {
     try {

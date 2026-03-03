@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, MoreHorizontal, Trash2, VolumeX } from "lucide-react";
+import { Edit, MoreHorizontal, RefreshCw, Trash2, VolumeX } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ type SourceCardProps = {
   onEdit: (subscription: SourceSubscription) => void;
   onMute: (subscription: SourceSubscription) => void;
   onUnsubscribe: (subscription: SourceSubscription) => void;
+  onRetryFetch?: (subscription: SourceSubscription) => void;
 };
 
 function statusVariant(status: string) {
@@ -32,7 +33,7 @@ function statusVariant(status: string) {
   return "secondary" as const;
 }
 
-export function SourceCard({ subscription, busy, onEdit, onMute, onUnsubscribe }: SourceCardProps) {
+export function SourceCard({ subscription, busy, onEdit, onMute, onUnsubscribe, onRetryFetch }: SourceCardProps) {
   const mutedUntil = subscription.mutedUntil ? new Date(subscription.mutedUntil) : null;
   const isMuted = Boolean(mutedUntil && mutedUntil > new Date());
 
@@ -61,6 +62,12 @@ export function SourceCard({ subscription, busy, onEdit, onMute, onUnsubscribe }
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {onRetryFetch && (subscription.source.lastFetchStatus === "failed" || subscription.source.lastFetchStatus === "never") ? (
+              <DropdownMenuItem onClick={() => onRetryFetch(subscription)}>
+                <RefreshCw className="size-4" />
+                Retry fetch
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onClick={() => onEdit(subscription)}>
               <Edit className="size-4" />
               Edit name

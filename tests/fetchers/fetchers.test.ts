@@ -66,13 +66,13 @@ describe("fetchers with fixtures", () => {
       name: "Fixture Newsletter",
     });
 
-    const posts = await substackFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
+    const result = await substackFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
 
     expect(parseURLMock).toHaveBeenCalledWith("https://newsletter.example.com/feed");
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.externalId).toBe("sub-new-1");
-    expect(posts[0]?.mediaType).toBe("article");
-    expect(posts[0]?.metadata).toMatchObject({ readTimeMinutes: expect.any(Number) });
+    expect(result.posts).toHaveLength(1);
+    expect(result.posts[0]?.externalId).toBe("sub-new-1");
+    expect(result.posts[0]?.mediaType).toBe("article");
+    expect(result.posts[0]?.metadata).toMatchObject({ readTimeMinutes: expect.any(Number) });
   });
 
   it("parses X feed through RSSHub fixture", async () => {
@@ -86,12 +86,12 @@ describe("fetchers with fixtures", () => {
       name: "X Fixture",
     });
 
-    const posts = await xFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
+    const result = await xFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
 
     expect(parseURLMock).toHaveBeenCalledWith("http://rsshub.test/twitter/user/test_account");
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.externalId).toBe("x-guid-new");
-    expect(posts[0]?.url).toContain("/status/123");
+    expect(result.posts).toHaveLength(1);
+    expect(result.posts[0]?.externalId).toBe("x-guid-new");
+    expect(result.posts[0]?.url).toContain("/status/123");
   });
 
   it("parses Telegram channel HTML fixture", async () => {
@@ -108,12 +108,12 @@ describe("fetchers with fixtures", () => {
       name: "Telegram Fixture",
     });
 
-    const posts = await telegramFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
+    const result = await telegramFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
 
     expect(fetchMock).toHaveBeenCalledWith("https://t.me/s/testchannel");
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.externalId).toBe("testchannel/200");
-    expect(posts[0]?.metadata).toMatchObject({ viewCount: "1234" });
+    expect(result.posts).toHaveLength(1);
+    expect(result.posts[0]?.externalId).toBe("testchannel/200");
+    expect(result.posts[0]?.metadata).toMatchObject({ viewCount: "1234" });
   });
 
   it("uses RSS fixture for website fetches when available", async () => {
@@ -127,12 +127,12 @@ describe("fetchers with fixtures", () => {
       name: "Website Fixture",
     });
 
-    const posts = await websiteFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
+    const result = await websiteFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
 
     expect(parseURLMock).toHaveBeenCalledWith("https://site.example.com/rss");
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.externalId).toBe("web-rss-1");
-    expect(posts[0]?.metadata).toMatchObject({ siteName: "Website Fixture" });
+    expect(result.posts).toHaveLength(1);
+    expect(result.posts[0]?.externalId).toBe("web-rss-1");
+    expect(result.posts[0]?.metadata).toMatchObject({ siteName: "Website Fixture" });
   });
 
   it("falls back to HTML extraction when website RSS parsing fails", async () => {
@@ -151,12 +151,12 @@ describe("fetchers with fixtures", () => {
       name: "Website Fixture",
     });
 
-    const posts = await websiteFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
+    const result = await websiteFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
 
     expect(fetchMock).toHaveBeenCalledWith("https://site.example.com/article");
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.title).toBeTruthy();
-    expect(posts[0]?.mediaType).toBe("article");
+    expect(result.posts).toHaveLength(1);
+    expect(result.posts[0]?.title).toBeTruthy();
+    expect(result.posts[0]?.mediaType).toBe("article");
   });
 
   it("parses YouTube API fixture responses", async () => {
@@ -191,12 +191,12 @@ describe("fetchers with fixtures", () => {
       name: "YouTube Fixture",
     });
 
-    const posts = await youtubeFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
+    const result = await youtubeFetcher.fetch(source, new Date("2026-01-01T00:00:00.000Z"));
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.externalId).toBe("video_new_1");
-    expect(posts[0]?.metadata).toMatchObject({
+    expect(result.posts).toHaveLength(1);
+    expect(result.posts[0]?.externalId).toBe("video_new_1");
+    expect(result.posts[0]?.metadata).toMatchObject({
       embedUrl: "https://www.youtube.com/embed/video_new_1",
       viewCount: "1200",
     });

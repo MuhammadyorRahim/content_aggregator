@@ -37,8 +37,42 @@ export function SourcesManager() {
     url: string;
     name?: string;
   }) {
-    await sourcesQuery.subscribe.mutateAsync(input);
-    toast.success("Source subscribed");
+    const result = await sourcesQuery.subscribe.mutateAsync(input) as {
+      fetchedCount?: number;
+      initialFetchFailed?: boolean;
+      fetchWarning?: string;
+      fetchErrorMessage?: string;
+    };
+
+    if (result?.initialFetchFailed) {
+      toast.error(result.fetchErrorMessage ?? "Source added but initial fetch failed. You can retry from the source menu.");
+    } else if (result?.fetchedCount === 0) {
+      toast.warning(result?.fetchWarning ?? "Source added but no posts found yet. Posts will appear on next fetch cycle.");
+    } else if (result?.fetchedCount) {
+      toast.success(`Source added with ${result.fetchedCount} post${result.fetchedCount > 1 ? "s" : ""} fetched.`);
+    } else {
+      toast.success("Source subscribed");
+    }
+  }
+
+  async function handleRetryFetch(subscription: SourceSubscription) {
+    try {
+      const result = await sourcesQuery.retryFetch.mutateAsync(subscription.sourceId) as {
+        fetchedCount?: number;
+        insertedCount?: number;
+        warning?: string;
+      };
+
+      if (result?.insertedCount) {
+        toast.success(`Fetched ${result.insertedCount} new post${result.insertedCount > 1 ? "s" : ""}.`);
+      } else if (result?.warning) {
+        toast.warning(result.warning);
+      } else {
+        toast.success("Fetch completed. No new posts found.");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Retry fetch failed");
+    }
   }
 
   async function handleEdit(input: { sourceId: string; customName?: string }) {
@@ -84,7 +118,8 @@ export function SourcesManager() {
   const busy =
     sourcesQuery.subscribe.isPending ||
     sourcesQuery.updateSubscription.isPending ||
-    sourcesQuery.unsubscribe.isPending;
+    sourcesQuery.unsubscribe.isPending ||
+    sourcesQuery.retryFetch.isPending;
 
   useErrorToast(sourcesQuery.error, "Failed to load sources");
 
@@ -149,6 +184,7 @@ export function SourcesManager() {
           onEdit={setEditTarget}
           onMute={setMuteTarget}
           onUnsubscribe={handleUnsubscribe}
+          onRetryFetch={handleRetryFetch}
         />
       )}
 

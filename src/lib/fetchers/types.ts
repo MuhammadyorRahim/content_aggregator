@@ -12,6 +12,21 @@ export interface FetchedPost {
   publishedAt: Date;
 }
 
+export interface FetchResult {
+  posts: FetchedPost[];
+  warning?: string;
+}
+
+export class FetchError extends Error {
+  public readonly reason: "config" | "network" | "parse" | "empty";
+
+  constructor(message: string, reason: "config" | "network" | "parse" | "empty") {
+    super(message);
+    this.name = "FetchError";
+    this.reason = reason;
+  }
+}
+
 export interface Fetcher {
-  fetch(source: Source, since: Date): Promise<FetchedPost[]>;
+  fetch(source: Source, since: Date): Promise<FetchResult>;
 }

@@ -1,6 +1,6 @@
 import { ensureProtocol, extractYoutubeHandle } from "@/lib/url-normalizer";
 
-import type { FetchedPost, Fetcher } from "./types";
+import { FetchError, type FetchResult, type FetchedPost, type Fetcher } from "./types";
 
 type YouTubeSearchResponse = {
   items?: Array<{
@@ -54,10 +54,13 @@ async function getChannelId(apiKey: string, sourceIdentifier: string) {
 }
 
 export const youtubeFetcher: Fetcher = {
-  async fetch(source, since) {
+  async fetch(source, since): Promise<FetchResult> {
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
-      return [];
+      throw new FetchError(
+        "YOUTUBE_API_KEY environment variable is not set. YouTube sources cannot be fetched.",
+        "config"
+      );
     }
 
     const normalizedId = source.normalizedUrl.startsWith("youtube:")
@@ -66,14 +69,20 @@ export const youtubeFetcher: Fetcher = {
 
     const channelId = await getChannelId(apiKey, normalizedId);
     if (!channelId) {
-      return [];
+      throw new FetchError(
+        `Could not resolve YouTube channel for "${normalizedId}". Check the URL or handle.`,
+        "network"
+      );
     }
 
     const publishedAfter = encodeURIComponent(since.toISOString());
     const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=25&order=date&type=video&publishedAfter=${publishedAfter}&key=${apiKey}`;
     const searchResponse = await fetch(searchUrl);
     if (!searchResponse.ok) {
-      return [];
+      throw new FetchError(
+        `YouTube API search failed (HTTP ${searchResponse.status}). Check API key quota.`,
+        "network"
+      );
     }
 
     const searchData = (await searchResponse.json()) as YouTubeSearchResponse;
@@ -82,13 +91,16 @@ export const youtubeFetcher: Fetcher = {
       .filter((value): value is string => Boolean(value));
 
     if (!videoIds.length) {
-      return [];
+      return { posts: [], warning: `No new videos found since ${since.toISOString().split("T")[0]}` };
     }
 
     const videosUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoIds.join(",")}&key=${apiKey}`;
     const videosResponse = await fetch(videosUrl);
     if (!videosResponse.ok) {
-      return [];
+      throw new FetchError(
+        `YouTube API videos request failed (HTTP ${videosResponse.status}).`,
+        "network"
+      );
     }
 
     const videosData = (await videosResponse.json()) as YouTubeVideosResponse;
@@ -122,6 +134,6 @@ export const youtubeFetcher: Fetcher = {
         });
     }
 
-    return posts;
+    return { posts };
   },
 };

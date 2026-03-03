@@ -82,11 +82,17 @@ export function useSources(enabled = true) {
     onSuccess: () => invalidateSourceRelated(queryClient),
   });
 
+  const retryFetch = useMutation({
+    mutationFn: (sourceId: string) => request(`/api/sources/${encodeURIComponent(sourceId)}/retry`, "POST"),
+    onSuccess: () => invalidateSourceRelated(queryClient),
+  });
+
   return {
     ...query,
     sources: (query.data ?? []) as SourceSubscription[],
     subscribe,
     updateSubscription,
     unsubscribe,
+    retryFetch,
   };
 }

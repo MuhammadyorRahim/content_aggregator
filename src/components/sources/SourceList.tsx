@@ -12,9 +12,10 @@ type SourceListProps = {
   onEdit: (subscription: SourceSubscription) => void;
   onMute: (subscription: SourceSubscription) => void;
   onUnsubscribe: (subscription: SourceSubscription) => void;
+  onRetryFetch?: (subscription: SourceSubscription) => void;
 };
 
-export function SourceList({ sources, busy, onEdit, onMute, onUnsubscribe }: SourceListProps) {
+export function SourceList({ sources, busy, onEdit, onMute, onUnsubscribe, onRetryFetch }: SourceListProps) {
   if (!sources.length) {
     return (
       <EmptyState
@@ -35,6 +36,7 @@ export function SourceList({ sources, busy, onEdit, onMute, onUnsubscribe }: Sou
           onEdit={onEdit}
           onMute={onMute}
           onUnsubscribe={onUnsubscribe}
+          onRetryFetch={onRetryFetch}
         />
       ))}
     </div>

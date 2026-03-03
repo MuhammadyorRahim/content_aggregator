@@ -1,6 +1,6 @@
 import Parser from "rss-parser";
 
-import type { FetchedPost, Fetcher } from "./types";
+import { FetchError, type FetchResult, type FetchedPost, type Fetcher } from "./types";
 
 const parser = new Parser<Record<string, unknown>, Record<string, unknown>>();
 
@@ -18,16 +18,26 @@ function extractXUsername(sourceUrl: string, normalizedUrl: string) {
 }
 
 export const xFetcher: Fetcher = {
-  async fetch(source, since) {
+  async fetch(source, since): Promise<FetchResult> {
     const baseUrl = process.env.RSSHUB_BASE_URL ?? "http://localhost:1200";
     const username = extractXUsername(source.url, source.normalizedUrl);
 
     if (!username) {
-      return [];
+      throw new FetchError("Could not extract X/Twitter username from the URL.", "parse");
     }
 
     const rssUrl = `${baseUrl.replace(/\/$/, "")}/twitter/user/${username}`;
-    const feed = await parser.parseURL(rssUrl);
+
+    let feed;
+    try {
+      feed = await parser.parseURL(rssUrl);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new FetchError(
+        `Failed to fetch X/Twitter feed from RSSHub (${rssUrl}). Is RSSHub running? Error: ${msg}`,
+        "network"
+      );
+    }
 
     const posts: FetchedPost[] = [];
 
@@ -60,6 +70,10 @@ export const xFetcher: Fetcher = {
         });
     }
 
-    return posts;
+    if (!posts.length && !feed.items?.length) {
+      return { posts: [], warning: "Feed returned no items. The account may be private or the RSSHub route may be unavailable." };
+    }
+
+    return { posts };
   },
 };

@@ -6,7 +6,7 @@ import Parser from "rss-parser";
 
 import { ensureProtocol } from "@/lib/url-normalizer";
 
-import type { FetchedPost, Fetcher } from "./types";
+import { FetchError, type FetchResult, type FetchedPost, type Fetcher } from "./types";
 
 const parser = new Parser<Record<string, unknown>, Record<string, unknown>>();
 
@@ -33,9 +33,10 @@ async function parseWithReadability(html: string, url: string): Promise<{ title?
 }
 
 export const websiteFetcher: Fetcher = {
-  async fetch(source, since) {
+  async fetch(source, since): Promise<FetchResult> {
     const websiteUrl = ensureProtocol(source.url);
 
+    // Try RSS first
     try {
       const feed = await parser.parseURL(websiteUrl);
       const rssPosts: FetchedPost[] = [];
@@ -76,15 +77,26 @@ export const websiteFetcher: Fetcher = {
       }
 
       if (rssPosts.length) {
-        return rssPosts;
+        return { posts: rssPosts };
       }
     } catch {
-      // fallback to HTML extraction
+      // Not an RSS feed, fallback to HTML extraction
     }
 
-    const response = await fetch(websiteUrl);
+    // Fallback to HTML scraping
+    let response;
+    try {
+      response = await fetch(websiteUrl);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new FetchError(`Network error fetching ${websiteUrl}: ${msg}`, "network");
+    }
+
     if (!response.ok) {
-      return [];
+      throw new FetchError(
+        `Website returned HTTP ${response.status} for ${websiteUrl}.`,
+        "network"
+      );
     }
 
     const html = await response.text();
@@ -111,7 +123,7 @@ export const websiteFetcher: Fetcher = {
 
     const publishedAt = new Date(publishedRaw);
     if (Number.isNaN(publishedAt.getTime()) || publishedAt < since) {
-      return [];
+      return { posts: [], warning: `Page content is older than ${since.toISOString().split("T")[0]} or has no date.` };
     }
 
     const imageUrl =
@@ -121,21 +133,23 @@ export const websiteFetcher: Fetcher = {
 
     const externalId = crypto.createHash("sha256").update(websiteUrl + publishedAt.toISOString()).digest("hex");
 
-    return [
-      {
-        externalId,
-        title,
-        content,
-        author: source.name,
-        url: websiteUrl,
-        imageUrl,
-        mediaType: "article",
-        metadata: {
-          siteName: source.name,
-          readTimeMinutes: estimateReadTimeMinutes(content),
+    return {
+      posts: [
+        {
+          externalId,
+          title,
+          content,
+          author: source.name,
+          url: websiteUrl,
+          imageUrl,
+          mediaType: "article",
+          metadata: {
+            siteName: source.name,
+            readTimeMinutes: estimateReadTimeMinutes(content),
+          },
+          publishedAt: new Date(publishedAt.toISOString()),
         },
-        publishedAt: new Date(publishedAt.toISOString()),
-      },
-    ];
+      ],
+    };
   },
 };
