@@ -1,3 +1,19 @@
+# ─── RSSHub for Content Aggregator ──────────────────────────────
+# Generates RSS feeds for Twitter/X (and other platforms).
+#
+# SETUP (one-time for Twitter/X):
+#   1. Get your Twitter auth_token cookie:
+#      - Log in to twitter.com / x.com in Chrome
+#      - Open DevTools (F12) → Application → Cookies → https://x.com
+#      - Copy the value of the "auth_token" cookie (~40 hex chars)
+#   2. Create deploy/.env.rsshub on the server:
+#        TWITTER_AUTH_TOKEN=your_auth_token_value_here
+#   3. Restart RSSHub:
+#        docker compose -f deploy/docker-compose.yml up -d
+#
+# Logs:    docker compose -f deploy/docker-compose.yml logs -f rsshub
+# Restart: docker compose -f deploy/docker-compose.yml restart rsshub
+
 services:
   rsshub:
     image: diygod/rsshub:latest
@@ -6,6 +22,17 @@ services:
     ports:
       - "1200:1200"
     environment:
-      NODE_ENV: production
-      CACHE_TYPE: memory
-      CACHE_EXPIRE: 600
+      - NODE_ENV=production
+      - CACHE_TYPE=memory
+      - CACHE_EXPIRE=600
+      - CACHE_CONTENT_EXPIRE=3600
+      - NO_RANDOM_UA=1
+    env_file:
+      - path: ./.env.rsshub
+        required: false
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:1200/healthz"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
