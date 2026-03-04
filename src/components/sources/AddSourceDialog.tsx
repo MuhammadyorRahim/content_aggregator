@@ -115,9 +115,22 @@ export function AddSourceDialog({ onSubmit, loading = false }: AddSourceDialogPr
               id="sourceUrl"
               value={url}
               onChange={(event) => setUrl(event.target.value)}
-              placeholder="e.g. x.com/karpathy, @veritasium, t.me/channel"
+              placeholder={
+                type === "x" ? "e.g. @karpathy or x.com/karpathy" :
+                type === "youtube" ? "e.g. @veritasium or youtube.com/@veritasium" :
+                type === "substack" ? "e.g. stratechery or stratechery.substack.com" :
+                type === "telegram" ? "e.g. @durov or t.me/durov" :
+                "e.g. https://example.com/feed.xml"
+              }
               required
             />
+            <p className="text-xs text-muted-foreground">
+              {type === "x" && "Enter an X/Twitter handle or profile URL."}
+              {type === "youtube" && "Enter a YouTube @handle, channel URL, or channel ID (UC...)."}
+              {type === "substack" && "Enter a Substack username or newsletter URL."}
+              {type === "telegram" && "Enter a Telegram channel handle (@name) or t.me link."}
+              {type === "website" && "Enter a direct RSS/Atom feed URL."}
+            </p>
           </div>
 
           <div className="space-y-2">

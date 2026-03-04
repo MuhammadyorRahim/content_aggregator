@@ -1,31 +1,25 @@
 import { load } from "cheerio";
 
-import { ensureProtocol } from "@/lib/url-normalizer";
-
 import { FetchError, type FetchResult, type FetchedPost, type Fetcher } from "./types";
-
-function normalizeTelegramPublicUrl(input: string) {
-  const url = ensureProtocol(input).replace(/\/$/, "");
-
-  if (/\/s\//.test(url)) {
-    return url;
-  }
-
-  return url.replace("t.me/", "t.me/s/");
-}
 
 function extractChannel(input: string) {
   return input
     .replace(/https?:\/\/t\.me\/(s\/)?/i, "")
     .replace(/^@/, "")
     .split("/")[0]
-    .trim();
+    .trim()
+    .toLowerCase();
+}
+
+function buildTelegramUrl(input: string) {
+  const channel = extractChannel(input);
+  return `https://t.me/s/${channel}`;
 }
 
 export const telegramFetcher: Fetcher = {
   async fetch(source, since): Promise<FetchResult> {
-    const url = normalizeTelegramPublicUrl(source.url);
     const channel = extractChannel(source.url);
+    const url = buildTelegramUrl(source.url);
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15_000);
