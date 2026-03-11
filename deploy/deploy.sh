@@ -18,6 +18,9 @@ git pull --ff-only origin "$DEPLOY_BRANCH"
 echo "Stopping PM2 processes to free memory for build..."
 pm2 stop all 2>/dev/null || true
 
+echo "Cleaning stale node_modules..."
+rm -rf node_modules
+
 echo "Installing dependencies..."
 npm ci
 
