@@ -18,9 +18,15 @@ export function formatPublishedAt(value: string) {
 
 // --- Tweet-specific helpers ---
 
+export type ParsedTweetQuote = {
+  authorHandle: string;
+  text: string;
+  imageUrl: string | null;
+};
+
 export type ParsedTweetContent = {
   mainText: string;
-  quote: { authorHandle: string; text: string } | null;
+  quote: ParsedTweetQuote | null;
 };
 
 /**
@@ -46,17 +52,23 @@ export function parseTweetContent(html: string): ParsedTweetContent {
     const handleMatch = quoteHtml.match(/<a[^>]*>@?([^<]+)<\/a>/i);
     const authorHandle = handleMatch ? handleMatch[1].trim() : "";
 
-    // Get text after the handle link, strip HTML
+    // Extract image from inside the quote
+    const quoteImgMatch = quoteHtml.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+    const quoteImageUrl = quoteImgMatch ? quoteImgMatch[1] : null;
+
+    // Get text after the handle link, strip HTML (including img tags)
     let quoteText = quoteHtml;
     if (handleMatch) {
       quoteText = quoteHtml.replace(handleMatch[0], "").trim();
       // Remove leading colon/dash separators
       quoteText = quoteText.replace(/^[\s:–—-]+/, "");
     }
+    // Remove img tags before stripping HTML so they don't become text
+    quoteText = quoteText.replace(/<img[^>]*>/gi, "");
     quoteText = stripHtml(quoteText);
 
     if (authorHandle || quoteText) {
-      quote = { authorHandle, text: quoteText };
+      quote = { authorHandle, text: quoteText, imageUrl: quoteImageUrl };
     }
   }
 
