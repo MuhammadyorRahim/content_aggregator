@@ -9,14 +9,18 @@ type CountProps = {
 
 export function StatsCardsSkeleton({ count = 4 }: CountProps) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
       {Array.from({ length: count }).map((_, index) => (
-        <Card key={index}>
-          <CardContent className="space-y-3 py-4">
-            <Skeleton className="h-3 w-28" />
-            <Skeleton className="h-8 w-16" />
-          </CardContent>
-        </Card>
+        <div
+          key={index}
+          className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5"
+        >
+          <Skeleton className="size-[52px] flex-shrink-0 rounded-full" />
+          <div className="flex flex-col gap-1.5">
+            <Skeleton className="h-6 w-12" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        </div>
       ))}
     </div>
   );

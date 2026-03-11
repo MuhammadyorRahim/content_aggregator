@@ -6,6 +6,7 @@ import { RadioTower } from "lucide-react";
 import { NewPostsBanner } from "@/components/feed/NewPostsBanner";
 import { PostList } from "@/components/feed/PostList";
 import { ReadingModal } from "@/components/feed/ReadingModal";
+import { StatsCards } from "@/components/feed/StatsCards";
 import { FilterBar, type FeedFilters } from "@/components/layout/FilterBar";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FeedListSkeleton, StatsCardsSkeleton } from "@/components/shared/LoadingStates";
@@ -125,32 +126,13 @@ export function FeedWorkspace() {
       {statsLoading ? (
         <StatsCardsSkeleton />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardContent className="py-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Subscribed sources</p>
-              <p className="text-2xl font-semibold">{sourcesQuery.sources.length}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="py-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Unread posts</p>
-              <p className="text-2xl font-semibold">{unreadTotal}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="py-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Categories</p>
-              <p className="text-2xl font-semibold">{categoryCount}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="py-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Scheduled events</p>
-              <p className="text-2xl font-semibold">{user?.plan === "pro" ? scheduleQuery.events.length : "Pro"}</p>
-            </CardContent>
-          </Card>
-        </div>
+        <StatsCards
+          sourcesCount={sourcesQuery.sources.length}
+          unreadCount={unreadTotal}
+          categoryCount={categoryCount}
+          scheduledCount={user?.plan === "pro" ? scheduleQuery.events.length : null}
+          isPro={user?.plan === "pro"}
+        />
       )}
 
       {!searchMode ? (
