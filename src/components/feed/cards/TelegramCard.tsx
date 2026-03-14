@@ -24,22 +24,22 @@ export function TelegramCard({ post, busy, onToggleSaved, onHide, onOpenReader }
     <Card className="border-border/70 bg-card/70">
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {post.isSaved ? <Badge variant="outline">Saved</Badge> : null}
-            <Badge variant="outline">Telegram</Badge>
-          </div>
           <CardTitle className="text-base">{post.title || sourceName}</CardTitle>
           <p className="text-xs text-muted-foreground">
             {sourceName} · {new Date(post.publishedAt).toLocaleString()}
           </p>
         </div>
-        <PostActions
-          isSaved={post.isSaved}
-          busy={busy}
-          onToggleSaved={() => onToggleSaved(post)}
-          onHide={() => onHide(post)}
-          onOpenReader={() => onOpenReader(post)}
-        />
+        <div className="flex items-center gap-2">
+          {post.isSaved ? <Badge variant="outline">Saved</Badge> : null}
+          <Badge variant="outline">Telegram</Badge>
+          <PostActions
+            isSaved={post.isSaved}
+            busy={busy}
+            onToggleSaved={() => onToggleSaved(post)}
+            onHide={() => onHide(post)}
+            onOpenReader={() => onOpenReader(post)}
+          />
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="rounded-lg bg-muted/60 p-4 text-sm leading-relaxed">

@@ -38,23 +38,23 @@ export function ArticleCard({ post, busy, onToggleSaved, onHide, onOpenReader }:
 
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {post.isSaved ? <Badge variant="outline">Saved</Badge> : null}
-            <Badge variant="outline">{post.source.type}</Badge>
-            {post.category ? <Badge variant="outline">{post.category}</Badge> : null}
-          </div>
           <CardTitle className="text-base">{post.title || "Untitled article"}</CardTitle>
           <p className="text-xs text-muted-foreground">
             {sourceName} · {new Date(post.publishedAt).toLocaleString()}
           </p>
         </div>
-        <PostActions
-          isSaved={post.isSaved}
-          busy={busy}
-          onToggleSaved={() => onToggleSaved(post)}
-          onHide={() => onHide(post)}
-          onOpenReader={() => onOpenReader(post)}
-        />
+        <div className="flex items-center gap-2">
+          {post.isSaved ? <Badge variant="outline">Saved</Badge> : null}
+          <Badge variant="outline">{post.source.type}</Badge>
+          {post.category ? <Badge variant="outline">{post.category}</Badge> : null}
+          <PostActions
+            isSaved={post.isSaved}
+            busy={busy}
+            onToggleSaved={() => onToggleSaved(post)}
+            onHide={() => onHide(post)}
+            onOpenReader={() => onOpenReader(post)}
+          />
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">{shortExcerpt(post.content, 320)}</p>

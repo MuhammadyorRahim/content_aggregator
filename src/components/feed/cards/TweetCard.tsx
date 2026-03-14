@@ -103,11 +103,9 @@ export function TweetCard({ post, busy, onToggleSaved, onHide, onOpenReader }: T
 
   return (
     <Card className="border-border/70 bg-card/70">
-      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {post.isSaved ? <Badge variant="outline">Saved</Badge> : null}
-          <Badge variant="outline">X</Badge>
-        </div>
+      <CardHeader className="flex-row items-center justify-end gap-2 space-y-0 pb-2">
+        {post.isSaved ? <Badge variant="outline">Saved</Badge> : null}
+        <Badge variant="outline">X</Badge>
         <PostActions
           isSaved={post.isSaved}
           busy={busy}
