@@ -8,22 +8,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Check PM2 logs
+      - name: Restart and check
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          command_timeout: 1m
+          command_timeout: 2m
           script: |
+            cd /app
+            echo "=== Restarting PM2 ==="
+            pm2 startOrRestart /app/deploy/ecosystem.config.cjs --update-env
+            pm2 save
+            sleep 5
             echo "=== PM2 STATUS ==="
             pm2 status
-            echo "=== PM2 WEB LOGS (last 50) ==="
-            pm2 logs web --lines 50 --nostream
-            echo "=== PM2 WORKER LOGS (last 20) ==="
-            pm2 logs worker --lines 20 --nostream
-            echo "=== NGINX ERROR LOG ==="
-            sudo tail -20 /var/log/nginx/error.log 2>/dev/null || echo "no nginx error log"
+            echo "=== PM2 WEB LOGS (last 30) ==="
+            pm2 logs web --lines 30 --nostream
             echo "=== PORT CHECK ==="
-            ss -tlnp | grep -E '3000|80|443' || true
+            ss -tlnp | grep -E '3000|80|443' || echo "PORT 3000 NOT LISTENING"
