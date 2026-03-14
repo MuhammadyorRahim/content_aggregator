@@ -6,7 +6,7 @@ import Image from "next/image";
 
 import { PostActions } from "@/components/feed/PostActions";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   extractHandleFromUrl,
   formatRelativeDate,
@@ -103,20 +103,8 @@ export function TweetCard({ post, busy, onToggleSaved, onHide, onOpenReader }: T
 
   return (
     <Card className="border-border/70 bg-card/70">
-      <CardHeader className="flex-row items-center justify-end gap-2 space-y-0 pb-2">
-        {post.isSaved ? <Badge variant="outline">Saved</Badge> : null}
-        <Badge variant="outline">X</Badge>
-        <PostActions
-          isSaved={post.isSaved}
-          busy={busy}
-          onToggleSaved={() => onToggleSaved(post)}
-          onHide={() => onHide(post)}
-          onOpenReader={() => onOpenReader(post)}
-        />
-      </CardHeader>
-
-      <CardContent className="space-y-3 pt-0">
-        {/* Author row */}
+      <CardContent className="space-y-3 pt-4">
+        {/* Author row with badges and actions */}
         <div className="flex items-center gap-3">
           <div className="size-10 shrink-0 overflow-hidden rounded-full bg-muted">
             {handle && !avatarError ? (
@@ -159,6 +147,17 @@ export function TweetCard({ post, busy, onToggleSaved, onHide, onOpenReader }: T
               )}
               {post.url ? <ExternalLink className="size-3 shrink-0 opacity-60" /> : null}
             </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {post.isSaved ? <Badge variant="outline">Saved</Badge> : null}
+            <Badge variant="outline">X</Badge>
+            <PostActions
+              isSaved={post.isSaved}
+              busy={busy}
+              onToggleSaved={() => onToggleSaved(post)}
+              onHide={() => onHide(post)}
+              onOpenReader={() => onOpenReader(post)}
+            />
           </div>
         </div>
 
