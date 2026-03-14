@@ -94,12 +94,25 @@ function XIcon({ className }: { className?: string }) {
   );
 }
 
+function parseMetadata(post: FeedPostItem) {
+  if (!post.metadata) return null;
+  try {
+    return JSON.parse(post.metadata) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 export function TweetCard({ post, busy, onToggleSaved, onHide, onOpenReader }: TweetCardProps) {
   const sourceName = post.sourceCustomName || post.source.name;
   const handle = post.url ? extractHandleFromUrl(post.url) : null;
   const { mainText, quote } = parseTweetContent(post.content);
   const displayText = truncateUrlsInText(mainText);
   const [avatarError, setAvatarError] = useState(false);
+  const metadata = parseMetadata(post);
+  const allImages = (Array.isArray(metadata?.images) ? metadata.images : []) as string[];
+  const videoUrl = (typeof metadata?.videoUrl === "string" ? metadata.videoUrl : null);
+  const isVideo = post.mediaType === "video";
 
   return (
     <Card className="border-border/70 bg-card/70">
@@ -166,8 +179,49 @@ export function TweetCard({ post, busy, onToggleSaved, onHide, onOpenReader }: T
           <p className="whitespace-pre-line text-sm leading-relaxed">{displayText}</p>
         ) : null}
 
-        {/* Tweet media image */}
-        {post.imageUrl ? (
+        {/* Tweet media: video or images */}
+        {isVideo && videoUrl ? (
+          <div className="overflow-hidden rounded-xl border border-border/60 bg-black">
+            <video
+              src={videoUrl}
+              poster={post.imageUrl ?? undefined}
+              controls
+              preload="metadata"
+              className="aspect-video w-full"
+            />
+          </div>
+        ) : isVideo && post.imageUrl ? (
+          <a href={post.url ?? "#"} target="_blank" rel="noreferrer" className="group relative block overflow-hidden rounded-xl border border-border/60">
+            <Image
+              src={post.imageUrl}
+              alt="Video thumbnail"
+              width={1200}
+              height={675}
+              unoptimized
+              className="h-auto w-full object-cover transition-opacity group-hover:opacity-80"
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex size-14 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="ml-1 size-7"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+              </div>
+            </div>
+          </a>
+        ) : allImages.length > 1 ? (
+          <div className={`grid gap-1 overflow-hidden rounded-xl border border-border/60 ${allImages.length === 2 ? "grid-cols-2" : allImages.length === 3 ? "grid-cols-2" : "grid-cols-2"}`}>
+            {allImages.slice(0, 4).map((src, i) => (
+              <div key={i} className={`overflow-hidden ${allImages.length === 3 && i === 0 ? "row-span-2" : ""}`}>
+                <Image
+                  src={src}
+                  alt={`Tweet media ${i + 1}`}
+                  width={600}
+                  height={400}
+                  unoptimized
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        ) : post.imageUrl ? (
           <div className="overflow-hidden rounded-xl border border-border/60">
             <Image
               src={post.imageUrl}

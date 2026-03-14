@@ -157,21 +157,60 @@ export const xFetcher: Fetcher = {
         (item.contentSnippet as string | undefined) ??
         "";
 
-      // Parse HTML with cheerio to extract media
-      let imageUrl: string | undefined;
+      // Parse HTML with cheerio to extract all media
+      const imageUrls: string[] = [];
+      let videoUrl: string | undefined;
+      let videoPoster: string | undefined;
       let bodyHtml = rawHtml;
+
       if (rawHtml) {
         const $ = load(rawHtml);
 
-        // Extract first image outside quoted tweets
-        const $img = $("img").not(".rsshub-quote img").first();
-        if ($img.length) {
-          imageUrl = $img.attr("src") ?? undefined;
-          $img.remove(); // Remove so body doesn't duplicate media
+        // Extract video poster and source from <video> tags (outside quoted tweets)
+        const $video = $("video").not(".rsshub-quote video").first();
+        if ($video.length) {
+          videoPoster = $video.attr("poster") ?? undefined;
+          const $source = $video.find("source").first();
+          videoUrl = $source.attr("src") ?? $video.attr("src") ?? undefined;
+          $video.remove();
         }
+
+        // Extract all images outside quoted tweets
+        $("img").not(".rsshub-quote img").each((_i, el) => {
+          const src = $(el).attr("src");
+          if (src && !src.includes("emoji") && !src.includes("hashflag")) {
+            imageUrls.push(src);
+          }
+          $(el).remove();
+        });
 
         bodyHtml = $("body").html() ?? rawHtml;
       }
+
+      // Try media:content RSS field as fallback for media URLs
+      const mediaContent = item.mediaContent as Array<{ $?: { url?: string; medium?: string; type?: string } }> | undefined;
+      if (mediaContent?.length) {
+        for (const mc of mediaContent) {
+          const url = mc.$?.url;
+          if (!url) continue;
+          const medium = mc.$?.medium ?? "";
+          const type = mc.$?.type ?? "";
+
+          if (medium === "video" || type.startsWith("video/")) {
+            if (!videoUrl) videoUrl = url;
+          } else if (medium === "image" || type.startsWith("image/") || /\.(jpe?g|png|gif|webp)/i.test(url)) {
+            if (!imageUrls.includes(url)) imageUrls.push(url);
+          }
+        }
+      }
+
+      // Determine primary image: video poster > first extracted image
+      const imageUrl = videoPoster ?? imageUrls[0];
+
+      // Determine media type
+      let mediaType: "video" | "image" | "text" = "text";
+      if (videoUrl || videoPoster) mediaType = "video";
+      else if (imageUrl) mediaType = "image";
 
       const externalId = tweetId ? `twitter:${tweetId}` : guid || `twitter:${username}:${publishedRaw}`;
 
@@ -182,8 +221,12 @@ export const xFetcher: Fetcher = {
         author: (item.creator as string | undefined) ?? (item.author as string | undefined) ?? source.name,
         url: tweetId ? `https://x.com/${username}/status/${tweetId}` : link,
         imageUrl,
-        mediaType: imageUrl ? "image" : "text",
-        metadata: {},
+        mediaType,
+        metadata: {
+          ...(imageUrls.length > 1 ? { images: imageUrls } : {}),
+          ...(videoUrl ? { videoUrl } : {}),
+          ...(videoPoster ? { videoPoster } : {}),
+        },
         publishedAt: new Date(publishedAt.toISOString()),
       });
     }
