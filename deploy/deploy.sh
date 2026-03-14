@@ -20,7 +20,8 @@ echo "Stopping PM2 processes to free memory for build..."
 pm2 stop all 2>/dev/null || true
 
 echo "Cleaning stale node_modules..."
-rm -rf node_modules
+rm -rf node_modules || (sleep 2 && rm -rf node_modules) || true
+mkdir -p node_modules
 
 echo "Installing dependencies..."
 npm ci

@@ -3,6 +3,10 @@ name: Debug Server
 on:
   workflow_dispatch:
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
 jobs:
   debug:
     runs-on: ubuntu-latest
