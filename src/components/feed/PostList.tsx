@@ -22,17 +22,15 @@ type PostListProps = {
   hasMore: boolean;
   isFetchingNextPage: boolean;
   onLoadMore: () => void;
-  onToggleRead: (post: FeedPostItem) => void;
   onToggleSaved: (post: FeedPostItem) => void;
   onHide: (post: FeedPostItem) => void;
   onOpenReader: (post: FeedPostItem) => void;
-  getReadRef: (postId: string, isRead: boolean) => (node: HTMLElement | null) => void;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: EmptyAction;
 };
 
-function renderCard(props: Omit<PostListProps, "posts" | "hasMore" | "isFetchingNextPage" | "onLoadMore" | "getReadRef"> & {
+function renderCard(props: Omit<PostListProps, "posts" | "hasMore" | "isFetchingNextPage" | "onLoadMore"> & {
   post: FeedPostItem;
 }) {
   const { post, ...actions } = props;
@@ -57,11 +55,9 @@ export function PostList({
   hasMore,
   isFetchingNextPage,
   onLoadMore,
-  onToggleRead,
   onToggleSaved,
   onHide,
   onOpenReader,
-  getReadRef,
   emptyTitle = "No posts yet",
   emptyDescription = "Subscribe to sources or relax filters to populate your feed.",
   emptyAction,
@@ -101,10 +97,9 @@ export function PostList({
   return (
     <div className="space-y-4">
       {posts.map((post) => (
-        <article key={post.id} ref={getReadRef(post.id, post.isRead)}>
+        <article key={post.id}>
           {renderCard({
             post,
-            onToggleRead,
             onToggleSaved,
             onHide,
             onOpenReader,

@@ -7,7 +7,7 @@ import { ReadingModal } from "@/components/feed/ReadingModal";
 import { FilterBar, type FeedFilters } from "@/components/layout/FilterBar";
 import { FeedListSkeleton } from "@/components/shared/LoadingStates";
 import { Card, CardContent } from "@/components/ui/card";
-import { useCategories, useErrorToast, usePosts, useReadTracker, useSearch } from "@/hooks";
+import { useCategories, useErrorToast, usePosts, useSearch } from "@/hooks";
 import type { FeedPostItem } from "@/types/feed";
 
 const initialFilters: FeedFilters = {
@@ -71,11 +71,6 @@ export function SavedList() {
     ? "Try a different query or remove filters to broaden results."
     : "Bookmark posts from your feed and they will appear here.";
 
-  const { getReadRef } = useReadTracker({
-    onRead: posts.markPostRead,
-    enabled: !searchMode,
-  });
-
   useErrorToast(error, "Failed to load saved posts");
 
   return (
@@ -104,11 +99,9 @@ export function SavedList() {
               posts.fetchNextPage();
             }
           }}
-          onToggleRead={posts.toggleRead}
           onToggleSaved={posts.toggleSaved}
           onHide={posts.hide}
           onOpenReader={setReadingPost}
-          getReadRef={getReadRef}
           emptyTitle={emptyTitle}
           emptyDescription={emptyDescription}
         />
@@ -122,7 +115,6 @@ export function SavedList() {
             setReadingPost(null);
           }
         }}
-        onToggleRead={posts.toggleRead}
         onToggleSaved={posts.toggleSaved}
       />
     </section>

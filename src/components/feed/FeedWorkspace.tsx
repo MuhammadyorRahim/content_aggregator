@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RadioTower } from "lucide-react";
 
 import { NewPostsBanner } from "@/components/feed/NewPostsBanner";
@@ -16,7 +16,6 @@ import {
   useCategories,
   useErrorToast,
   usePosts,
-  useReadTracker,
   useSchedule,
   useSearch,
   useSources,
@@ -86,10 +85,18 @@ export function FeedWorkspace() {
   const statsLoading =
     sourcesQuery.isPending || categoriesQuery.isPending || (user?.plan === "pro" && scheduleQuery.isPending);
 
-  const { getReadRef } = useReadTracker({
-    enabled: !searchMode,
-    onRead: (postId) => posts.markPostRead(postId),
-  });
+  // Auto-mark all loaded posts as read
+  const markedReadRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (searchMode || posts.isLoading) return;
+    const unreadIds = posts.posts
+      .filter((p) => !p.isRead && !markedReadRef.current.has(p.id))
+      .map((p) => p.id);
+    if (unreadIds.length === 0) return;
+    unreadIds.forEach((id) => markedReadRef.current.add(id));
+    posts.batchRead.mutate({ postIds: unreadIds });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchMode, posts.isLoading, posts.posts]);
 
   useErrorToast(error, "Failed to load feed");
   useErrorToast(sourcesQuery.error, "Failed to load sources");
@@ -156,11 +163,9 @@ export function FeedWorkspace() {
               posts.fetchNextPage();
             }
           }}
-          onToggleRead={posts.toggleRead}
           onToggleSaved={posts.toggleSaved}
           onHide={posts.hide}
           onOpenReader={setReadingPost}
-          getReadRef={getReadRef}
         />
       ) : null}
 
@@ -172,7 +177,6 @@ export function FeedWorkspace() {
             setReadingPost(null);
           }
         }}
-        onToggleRead={posts.toggleRead}
         onToggleSaved={posts.toggleSaved}
       />
     </section>

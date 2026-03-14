@@ -17,11 +17,10 @@ type ReadingModalProps = {
   post: FeedPostItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onToggleRead: (post: FeedPostItem) => void;
   onToggleSaved: (post: FeedPostItem) => void;
 };
 
-export function ReadingModal({ post, open, onOpenChange, onToggleRead, onToggleSaved }: ReadingModalProps) {
+export function ReadingModal({ post, open, onOpenChange, onToggleSaved }: ReadingModalProps) {
   if (!post) {
     return null;
   }
@@ -44,14 +43,9 @@ export function ReadingModal({ post, open, onOpenChange, onToggleRead, onToggleS
         />
 
         <DialogFooter className="justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => onToggleRead(post)}>
-              {post.isRead ? "Mark unread" : "Mark read"}
-            </Button>
-            <Button variant="outline" onClick={() => onToggleSaved(post)}>
-              {post.isSaved ? "Unsave" : "Save"}
-            </Button>
-          </div>
+          <Button variant="outline" onClick={() => onToggleSaved(post)}>
+            {post.isSaved ? "Unsave" : "Save"}
+          </Button>
 
           {post.url ? (
             <Button asChild>

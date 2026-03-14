@@ -1,70 +1,55 @@
 "use client";
 
-import { Bookmark, BookOpen, Eye, EyeOff, MoreHorizontal, Trash2 } from "lucide-react";
+import { Bookmark, BookmarkCheck, BookOpen, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type PostActionsProps = {
-  isRead: boolean;
   isSaved: boolean;
   busy?: boolean;
-  onToggleRead: () => void;
   onToggleSaved: () => void;
   onOpenReader: () => void;
   onHide: () => void;
 };
 
 export function PostActions({
-  isRead,
   isSaved,
   busy = false,
-  onToggleRead,
   onToggleSaved,
   onOpenReader,
   onHide,
 }: PostActionsProps) {
   return (
     <TooltipProvider>
-      <DropdownMenu>
+      <div className="flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon-xs" disabled={busy} aria-label="Post actions">
-                <MoreHorizontal className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <Button variant="ghost" size="icon-xs" disabled={busy} onClick={onOpenReader} aria-label="Open reader">
+              <BookOpen className="size-4" />
+            </Button>
           </TooltipTrigger>
-          <TooltipContent>Post actions</TooltipContent>
+          <TooltipContent>Open reader</TooltipContent>
         </Tooltip>
 
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onOpenReader}>
-            <BookOpen className="size-4" />
-            Open reader
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onToggleRead}>
-            {isRead ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            {isRead ? "Mark unread" : "Mark read"}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onToggleSaved}>
-            <Bookmark className="size-4" />
-            {isSaved ? "Remove from saved" : "Save post"}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onHide} variant="destructive">
-            <Trash2 className="size-4" />
-            Hide post
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-xs" disabled={busy} onClick={onToggleSaved} aria-label={isSaved ? "Remove from saved" : "Save post"}>
+              {isSaved ? <BookmarkCheck className="size-4 text-primary" /> : <Bookmark className="size-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{isSaved ? "Remove from saved" : "Save post"}</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-xs" disabled={busy} onClick={onHide} aria-label="Hide post" className="hover:text-destructive">
+              <Trash2 className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Hide post</TooltipContent>
+        </Tooltip>
+      </div>
     </TooltipProvider>
   );
 }

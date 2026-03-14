@@ -19,7 +19,6 @@ import type { FeedPostItem } from "@/types/feed";
 type TweetCardProps = {
   post: FeedPostItem;
   busy?: boolean;
-  onToggleRead: (post: FeedPostItem) => void;
   onToggleSaved: (post: FeedPostItem) => void;
   onHide: (post: FeedPostItem) => void;
   onOpenReader: (post: FeedPostItem) => void;
@@ -95,7 +94,7 @@ function XIcon({ className }: { className?: string }) {
   );
 }
 
-export function TweetCard({ post, busy, onToggleRead, onToggleSaved, onHide, onOpenReader }: TweetCardProps) {
+export function TweetCard({ post, busy, onToggleSaved, onHide, onOpenReader }: TweetCardProps) {
   const sourceName = post.sourceCustomName || post.source.name;
   const handle = post.url ? extractHandleFromUrl(post.url) : null;
   const { mainText, quote } = parseTweetContent(post.content);
@@ -106,15 +105,12 @@ export function TweetCard({ post, busy, onToggleRead, onToggleSaved, onHide, onO
     <Card className="border-border/70 bg-card/70">
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={post.isRead ? "secondary" : "default"}>{post.isRead ? "Read" : "Unread"}</Badge>
           {post.isSaved ? <Badge variant="outline">Saved</Badge> : null}
           <Badge variant="outline">X</Badge>
         </div>
         <PostActions
-          isRead={post.isRead}
           isSaved={post.isSaved}
           busy={busy}
-          onToggleRead={() => onToggleRead(post)}
           onToggleSaved={() => onToggleSaved(post)}
           onHide={() => onHide(post)}
           onOpenReader={() => onOpenReader(post)}

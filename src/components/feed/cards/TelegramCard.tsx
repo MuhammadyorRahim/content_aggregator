@@ -12,13 +12,12 @@ import type { FeedPostItem } from "@/types/feed";
 type TelegramCardProps = {
   post: FeedPostItem;
   busy?: boolean;
-  onToggleRead: (post: FeedPostItem) => void;
   onToggleSaved: (post: FeedPostItem) => void;
   onHide: (post: FeedPostItem) => void;
   onOpenReader: (post: FeedPostItem) => void;
 };
 
-export function TelegramCard({ post, busy, onToggleRead, onToggleSaved, onHide, onOpenReader }: TelegramCardProps) {
+export function TelegramCard({ post, busy, onToggleSaved, onHide, onOpenReader }: TelegramCardProps) {
   const sourceName = post.sourceCustomName || post.source.name;
 
   return (
@@ -26,7 +25,6 @@ export function TelegramCard({ post, busy, onToggleRead, onToggleSaved, onHide, 
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={post.isRead ? "secondary" : "default"}>{post.isRead ? "Read" : "Unread"}</Badge>
             {post.isSaved ? <Badge variant="outline">Saved</Badge> : null}
             <Badge variant="outline">Telegram</Badge>
           </div>
@@ -36,10 +34,8 @@ export function TelegramCard({ post, busy, onToggleRead, onToggleSaved, onHide, 
           </p>
         </div>
         <PostActions
-          isRead={post.isRead}
           isSaved={post.isSaved}
           busy={busy}
-          onToggleRead={() => onToggleRead(post)}
           onToggleSaved={() => onToggleSaved(post)}
           onHide={() => onHide(post)}
           onOpenReader={() => onOpenReader(post)}

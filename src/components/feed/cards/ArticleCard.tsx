@@ -13,13 +13,12 @@ import type { FeedPostItem } from "@/types/feed";
 type ArticleCardProps = {
   post: FeedPostItem;
   busy?: boolean;
-  onToggleRead: (post: FeedPostItem) => void;
   onToggleSaved: (post: FeedPostItem) => void;
   onHide: (post: FeedPostItem) => void;
   onOpenReader: (post: FeedPostItem) => void;
 };
 
-export function ArticleCard({ post, busy, onToggleRead, onToggleSaved, onHide, onOpenReader }: ArticleCardProps) {
+export function ArticleCard({ post, busy, onToggleSaved, onHide, onOpenReader }: ArticleCardProps) {
   const sourceName = post.sourceCustomName || post.source.name;
 
   return (
@@ -40,7 +39,6 @@ export function ArticleCard({ post, busy, onToggleRead, onToggleSaved, onHide, o
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={post.isRead ? "secondary" : "default"}>{post.isRead ? "Read" : "Unread"}</Badge>
             {post.isSaved ? <Badge variant="outline">Saved</Badge> : null}
             <Badge variant="outline">{post.source.type}</Badge>
             {post.category ? <Badge variant="outline">{post.category}</Badge> : null}
@@ -51,10 +49,8 @@ export function ArticleCard({ post, busy, onToggleRead, onToggleSaved, onHide, o
           </p>
         </div>
         <PostActions
-          isRead={post.isRead}
           isSaved={post.isSaved}
           busy={busy}
-          onToggleRead={() => onToggleRead(post)}
           onToggleSaved={() => onToggleSaved(post)}
           onHide={() => onHide(post)}
           onOpenReader={() => onOpenReader(post)}
