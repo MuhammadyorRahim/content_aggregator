@@ -27,7 +27,6 @@ const initialFilters: FeedFilters = {
   query: "",
   category: "all",
   sourceType: "all",
-  state: "all",
 };
 
 function applyLocalFilters(posts: FeedPostItem[], filters: Omit<FeedFilters, "query">) {
@@ -37,14 +36,6 @@ function applyLocalFilters(posts: FeedPostItem[], filters: Omit<FeedFilters, "qu
     }
 
     if (filters.sourceType !== "all" && post.source.type !== filters.sourceType) {
-      return false;
-    }
-
-    if (filters.state === "unread" && post.isRead) {
-      return false;
-    }
-
-    if (filters.state === "saved" && !post.isSaved) {
       return false;
     }
 
@@ -71,9 +62,8 @@ export function FeedWorkspace() {
     () => ({
       category: filters.category,
       sourceType: filters.sourceType,
-      state: filters.state,
     }),
-    [filters.category, filters.sourceType, filters.state]
+    [filters.category, filters.sourceType]
   );
 
   const searchMode = debouncedQuery.length > 0;

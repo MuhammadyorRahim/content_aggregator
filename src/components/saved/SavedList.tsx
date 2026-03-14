@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useCategories, useErrorToast, usePosts, useReadTracker, useSearch } from "@/hooks";
 import type { FeedPostItem } from "@/types/feed";
 
-const initialFilters: Omit<FeedFilters, "state"> = {
+const initialFilters: FeedFilters = {
   query: "",
   category: "all",
   sourceType: "all",
@@ -81,14 +81,8 @@ export function SavedList() {
   return (
     <section className="space-y-4">
       <FilterBar
-        value={{ ...filters, state: "saved" }}
-        onChange={(next) =>
-          setFilters({
-            query: next.query,
-            category: next.category,
-            sourceType: next.sourceType,
-          })
-        }
+        value={filters}
+        onChange={setFilters}
         categories={categoriesQuery.data?.map((item) => item.category) ?? []}
       />
 

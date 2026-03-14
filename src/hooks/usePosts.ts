@@ -9,8 +9,13 @@ import {
 } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 
-import type { FeedFilters } from "@/components/layout/FilterBar";
 import type { FeedPostItem, FeedPostsResponse } from "@/types/feed";
+
+type PostsFilters = {
+  category: string;
+  sourceType: string;
+  state?: "all" | "unread" | "saved";
+};
 
 type UpdatePostStateInput = {
   postId: string;
@@ -48,7 +53,7 @@ type UsePostsOptions = {
 
 const PAGE_SIZE = 20;
 
-function buildPostsQueryParams(filters: Omit<FeedFilters, "query">, cursor?: string | null, limit = PAGE_SIZE) {
+function buildPostsQueryParams(filters: PostsFilters, cursor?: string | null, limit = PAGE_SIZE) {
   const params = new URLSearchParams();
   params.set("limit", String(limit));
 
@@ -64,18 +69,20 @@ function buildPostsQueryParams(filters: Omit<FeedFilters, "query">, cursor?: str
     params.set("sourceType", filters.sourceType);
   }
 
-  if (filters.state === "unread") {
+  const state = filters.state ?? "all";
+
+  if (state === "unread") {
     params.set("isRead", "false");
   }
 
-  if (filters.state === "saved") {
+  if (state === "saved") {
     params.set("isSaved", "true");
   }
 
   return params;
 }
 
-async function fetchPostsPage(filters: Omit<FeedFilters, "query">, cursor?: string | null, limit = PAGE_SIZE) {
+async function fetchPostsPage(filters: PostsFilters, cursor?: string | null, limit = PAGE_SIZE) {
   const query = buildPostsQueryParams(filters, cursor, limit);
   const response = await fetch(`/api/posts?${query.toString()}`, { cache: "no-store" });
   const payload = (await response.json()) as FeedPostsResponse;
@@ -109,12 +116,14 @@ function patchPages(
   };
 }
 
-function applyFilterToPatchedPost(filters: Omit<FeedFilters, "query">, post: FeedPostItem) {
-  if (filters.state === "unread" && post.isRead) {
+function applyFilterToPatchedPost(filters: PostsFilters, post: FeedPostItem) {
+  const state = filters.state ?? "all";
+
+  if (state === "unread" && post.isRead) {
     return null;
   }
 
-  if (filters.state === "saved" && !post.isSaved) {
+  if (state === "saved" && !post.isSaved) {
     return null;
   }
 
@@ -137,12 +146,12 @@ async function request(method: "PATCH" | "DELETE" | "POST", path: string, body?:
   return payload.data;
 }
 
-export function usePosts(filters: Omit<FeedFilters, "query">, options?: UsePostsOptions) {
+export function usePosts(filters: PostsFilters, options?: UsePostsOptions) {
   const queryClient = useQueryClient();
   const enabled = options?.enabled ?? true;
 
   const postsQueryKey = useMemo(
-    () => ["posts", filters.category, filters.sourceType, filters.state] as const,
+    () => ["posts", filters.category, filters.sourceType, filters.state ?? "all"] as const,
     [filters.category, filters.sourceType, filters.state]
   );
 
@@ -170,7 +179,7 @@ export function usePosts(filters: Omit<FeedFilters, "query">, options?: UsePosts
   const firstPostId = posts[0]?.id;
 
   const newPostsQuery = useQuery({
-    queryKey: ["posts-new-count", filters.category, filters.sourceType, filters.state, firstPostId ?? "none"],
+    queryKey: ["posts-new-count", filters.category, filters.sourceType, filters.state ?? "all", firstPostId ?? "none"],
     queryFn: async () => {
       if (!firstPostId) {
         return 0;
