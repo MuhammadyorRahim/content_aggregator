@@ -5,7 +5,7 @@ APP_DIR="${APP_DIR:-/app}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 ECOSYSTEM_FILE="${ECOSYSTEM_FILE:-$APP_DIR/deploy/ecosystem.config.cjs}"
 
-export NODE_OPTIONS="--max-old-space-size=512"
+export NODE_OPTIONS="--max-old-space-size=768"
 
 echo "Starting deploy at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 cd "$APP_DIR"
