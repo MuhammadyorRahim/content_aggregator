@@ -13,6 +13,7 @@ cd "$APP_DIR"
 echo "Updating code from origin/${DEPLOY_BRANCH}..."
 git fetch origin "$DEPLOY_BRANCH"
 git checkout "$DEPLOY_BRANCH"
+git stash --include-untracked 2>/dev/null || true
 git pull --ff-only origin "$DEPLOY_BRANCH"
 
 echo "Stopping PM2 processes to free memory for build..."
